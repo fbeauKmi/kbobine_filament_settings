@@ -7,7 +7,7 @@
 bugs, use it whith care**
 
 Kbobine is a gateway between Spoolman and Klipper, it send current spool
-informations to Klipper. Then allows you to store settings inside Klipper
+informations to Klipper. Then it allows you to store settings inside Klipper
 configuration.
 
 ### What it does ?
@@ -15,7 +15,7 @@ At Klipper startup or when a spool is selected (by UI or macro), it informs
 Klipper and send back informations from Spoolman to klipper (material, vendor,
 name of the filament, ...).
 Then Klipper apply settings previously set for this spool. If no information 
-found, it allows you to import settings from equivalent spool/material/default.
+found, settings from equivalent spool/material/default can be imported.
 
 ### What kind of settings ?
 Pressure advance and firmware retraction was the first parameters introduced in 
@@ -28,7 +28,7 @@ These settings are mostly printer/toolhead dependent. It also allows you to
 call settings even if connexion to spoolman is lost.
 
 ## How it works ?
-KBobine use a moonraker component ``spoolman_ext.py`` to track spool change then send infrmation about spool to klipper.
+KBobine use a moonraker component ``spoolman_ext.py`` to track spool change then send informations about spool to klipper.
 It stores infos about spool in a saved_variable array ``kbobine_table`` once the spool is loaded. If no setting is detected, it will prompt to calibrate filament or load settings from other filaments in table.
 Then it populates a ``current_settings`` array from default settings and stored settings. This array can be called from your Macros like this:
 
