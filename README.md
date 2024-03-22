@@ -8,7 +8,10 @@ bugs, use it whith care**
 
 Kbobine is a gateway between Spoolman and Klipper, it send current spool
 informations to Klipper. Then it allows you to store settings inside Klipper
-configuration.
+configuration.  It is compatible with Fluidd/Klipperscreen/Mainsail UI.
+| ![Fluidd](images/fluidd.png) | ![alt text](images/klipperscreen.png) | ![Mainsail](images/mainsail.png) |
+| ---------------------------- | ------------------------------------- | -------------------------------- |
+| _Fluidd_                      | _KlipperScreen_                       | _Mainsail_                       |
 
 ### What it does ?
 At Klipper startup or when a spool is selected (by UI or macro), it informs 
