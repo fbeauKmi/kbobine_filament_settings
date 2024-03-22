@@ -68,7 +68,7 @@ a warning will prompt to add it
 ``SET_SPOOL`` Store settings for current spool. If auto apply is enabled
 the settings will be apply at change.
 
-``SET_LOAD€_MATERIAL`` Set settings to be used by printer. The difference with
+``SET_LOADED_MATERIAL`` Set settings to be used by printer. The difference with
 previous command, it is not related to spool . The changes will not be stored.
 Useful when you want to test firmare retraction for example.
 
