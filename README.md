@@ -48,7 +48,7 @@ Parameters are store in a macro named ``_KBOBINE``:
 
 ``autoremove_default`` 0 or 1 Autoremove settings when equal to default (see ``CLEAN_DEFAULT``)
 
-``apply_on_load`` 0 or 1 Apply settings on load / change (see ``APPLY_SETTINGS``)
+``apply_on_load`` 0 or 1 Apply settings on load / change (see ``APPLY_SETTINGS``). In order to apply settings ``<setting>_enabled: True`` variable must be set for each parameters. 
 
 ``default`` Array containing default settings. Settings can be add/remove/change be sure to modify macros ``SET_SPOOL`` and ``SET_LOADED_MATERIAL`` according this change.
 
