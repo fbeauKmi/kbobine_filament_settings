@@ -53,8 +53,9 @@ klipper_config () {
         echo -e "\e[1;31mFilament settings: ${USER_CONFIG_DIR} doesn't exist\e[0m"
         exit 1
     fi
+
+    cp  "${FS_DIR}/config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
     if ! grep -qF "[include spoolman_ext.conf]" "${USER_CONFIG_DIR}/moonraker.conf"; then
-        cp  "${FS_DIR}/config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
         printf "\n\n[include spoolman_ext.conf]\n" >> "${USER_CONFIG_DIR}/moonraker.conf"
         echo -e "\e[1;32mspoolman_ext.conf installed in moonraker.conf \e[0m"
     else
@@ -62,7 +63,7 @@ klipper_config () {
     fi
     
     echo "Filament settings: install Klipper config files"
-    read -p $'\e[35m'"Subfolder to install ${CONFIG_DIR} ?"$'\e[0m' SUBFOLDER
+    read -p $'\e[35m'"Default folder for Kbobine is ~/printer_data/config. "$'\n'"Write subfolder name or press enter to install '${CONFIG_DIR}' in "$'\n'"${USER_CONFIG_DIR}/<subfolder>/${CONFIG_DIR} ?"$'\e[0m' SUBFOLDER
     if [ ! -d "${USER_CONFIG_DIR}/${SUBFOLDER}" ]; then
         echo -e "\e[1;31mFilament settings: ${USER_CONFIG_DIR}/${SUBFOLDER} doesn't exist\e[0m"
         exit 1
@@ -71,8 +72,8 @@ klipper_config () {
     if [ ! -d "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}" ]; then
         mkdir "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     fi
-    ln -s "${FS_DIR}/config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/core"
-    ln -s "${FS_DIR}/config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/addons"
+    ln -s "${FS_DIR}/config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
+    ln -s "${FS_DIR}/config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     
     if [ ! -e "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/config.cfg" ]; then
         cp  "${FS_DIR}/config/config.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
