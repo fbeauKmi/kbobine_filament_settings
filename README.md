@@ -1,14 +1,20 @@
 # KBobine 
 
-![KBobine](./images/kbobine.png)
+![KBobine](./images/kbobine_social.png)
 
 >[!WARNING] 
 **This repo is still at work, doc is uncomplete and code can present some
 bugs, use it whith care**
 
-Kbobine is a gateway between Spoolman and Klipper, it send current spool
-informations to Klipper. Then it allows you to store settings inside Klipper
-configuration.  It is compatible with Fluidd/Klipperscreen/Mainsail UI.
+Kbobine is a gateway between Spoolman and Klipper, it allows to send current spool
+informations to Klipper. 
+Then, it let you store settings inside Klipper
+configuration.
+
+**Compatibility: Fluidd/Klipperscreen/Mainsail UI.**
+
+**Requirements: a working Spoolman component in Moonraker**
+
 | ![Fluidd](images/fluidd.png) | ![alt text](images/klipperscreen.png) | ![Mainsail](images/mainsail.png) |
 | ---------------------------- | ------------------------------------- | -------------------------------- |
 | _Fluidd_                      | _KlipperScreen_                       | _Mainsail_                       |
@@ -19,6 +25,9 @@ Klipper and send back informations from Spoolman to klipper (material, vendor,
 name of the filament, ...).
 Then Klipper apply settings previously set for this spool. If no information 
 found, settings from equivalent spool/material/default can be imported.
+
+> [!NOTE] 
+> With the [minimal install](#run-the-installer) you can use kbobine just to share information between klipper and spoolman. [More informations on how ``spoolman_ext.py`` works](./spoolman_ext.md)
 
 ### What kind of settings ?
 Pressure advance and firmware retraction was the first parameters introduced in 
@@ -37,62 +46,46 @@ Then it populates a ``current_settings`` array from default settings and stored 
 
 ```  {% set settings = printer['gcode_macro _KBOBINE'].current_settings %} ```
 
-## Configuration
+## How to install it ?
 
-Configuration is done by adjusting ``config.cfg``
-### parameters 
+### Clone the repo
+First clone the current repo on your printer
+```
+cd ~
+git clone https://github.com/fbeauKmi/kbobine_filament_settings.git kbobine
+cd kbobine
+```
 
-Parameters are store in a macro named ``_KBOBINE``:
+### Run the installer 
+```
+Usage: bash install.sh [-0|--option]
 
-``verbose`` : 0 or 1 More verbose in console.
+Kbobine installer
 
-``autoremove_default`` 0 or 1 Autoremove settings when equal to default (see ``CLEAN_DEFAULT``)
+Optional args:
+  -m, --minimal              Install moonraker component only.
+  -f, --force                Force Moonraker component installation.
+  -h, --help                 Display this help message and exit.
+```
 
-``apply_on_load`` 0 or 1 Apply settings on load / change (see ``APPLY_SETTINGS``). In order to apply settings ``<setting>_enabled: True`` variable must be set for each parameters. 
+>[!WARNING]
+>The script does not restart Klipper/Moonraker, you will have to do it manually once done. 
+>```
+>sudo systemctl restart klipper
+>sudo systemctl restart moonraker
+>```
 
-``default`` Array containing default settings. Settings can be add/remove/change be sure to modify macros ``SET_SPOOL`` and ``SET_LOADED_MATERIAL`` according this change.
+## Uninstall it
+Remove Moonraker component, delete ``kbobine`` folder, Manually remove entries in ``moonraker.conf`` and klipper config
+```
+ unlink ~/moonraker/moonraker/components/spoolman_ext.py
+ rm -rf ~/kbobine
+ ```
 
-``required`` A list of required settings, If a spool doesn't have this settings
-a warning will prompt to add it
+## How to use it ?
 
-``th_depend`` A list of settings that depend on toolhead. For now it only check nozzle diameter, the mechanism will be improved. TO BE IMPROVE
+- [Kbobine Configuration and usage](./kbobine_macros.md)
+- [Simple Use case : Check in PRINT_START if a spool is selected](./spoolman_ext.md#simple-use-case-check-in-print_start-if-a-spool-is-selected)
 
-``current_settings`` Array that contains settings used by ``APPLY_SETTINGS``
-
-``spoolman`` contains spool id, name, vendor and material of current spool
-
-``spool_id`` Loaded spool id
-
-## Usage / Macros
-
-``SET_SPOOL`` Store settings for current spool. If auto apply is enabled
-the settings will be apply at change.
-
-``SET_LOADED_MATERIAL`` Set settings to be used by printer. The difference with
-previous command, it is not related to spool . The changes will not be stored.
-Useful when you want to test firmare retraction for example.
-
-``LOAD_DEFAULT_MATERIAL`` Load default filament settings instead of spool settings.
-
-``APPLY_SETTINGS`` Apply settings or enable/disable automatic apply on load/change. 
-
-``GET_SPOOL`` Display current spool settings in console.
-
-``GET_LOADED_MATERIAL`` Display actual loaded settings in console.
-
-``DEL_SPOOL`` Delete spool settings from ``kbobine_table``.
-
-``CLEAN_DEFAULT`` Remove settings from `kbobine_table`` for current filament if same as default value .
-
-## Includes
-
-``core/*`` function config files
-
-``addons/save_variables.cfg`` to include if there's no \[saved_variable\] section in the config.
-
-``klippain.cfg`` an experimental feature that populate ``material_parameters`` variable of Klippain with stored settings. Allowed settings : 'pressure_advance', 'retract_length', 'unretract_extra_length', 'retract_speed', 'unretract_speed', 'filter_speed', 'additional_z_offset', 'filament_sensor'. 
-Initial ``material_parameters`` is used as reference according material type from Spoolman
-
-``addons/max_flow.cfg`` experimental feature that limit max_flow. It requires some changes in slicer in order to work.
-
-``addons/fan_speed.cfg`` experimental feature to scale the partfan speed. It requires some changes in slicer in order to work.
+## Acknowledgements
+Thanks to French Voron Community for support and advices. 
