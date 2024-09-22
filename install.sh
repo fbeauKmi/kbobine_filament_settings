@@ -1,6 +1,7 @@
 #!/bin/bash
 
 MOONRAKER_DIR="${HOME}/moonraker"
+KLIPPY_DIR="${HOME}/klipper/klippy/"
 USER_CONFIG_DIR="${HOME}/printer_data/config"
 
 FS_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
@@ -103,6 +104,22 @@ klipper_config () {
     echo -e "To finalize installation, insert [include ./${SUBFOLDER}/${CONFIG_DIR}/config.cfg] in your printer.cfg" 
 }
 
+function optional_component(){
+    echo "Kbobine comes with optional klipper module for max_flow" 
+    if prompt "Do you want to install max_flow module. It will restart Klipper" ; then
+        EXTRAS_FOLDER="${KLIPPY_DIR}/extras"
+        if prompt "Are you using Danger-Klipper" ; then
+            EXTRAS_FOLDER="${KLIPPY_DIR}/plugins"
+        fi
+        ln -s "${FS_DIR}/klipper/klippy/plugins/max_flow.py" "${EXTRAS_FOLDER}"
+        echo "max_flow installed in ${EXTRAS_FOLDER}"
+        if prompt "Restart Klipper ?" ; then
+            service klipper restart 
+        fi
+    if
+    
+}
+
 HELP=false; MINIMAL=false; FORCE=false;
 
 # Parse command-line arguments
@@ -134,7 +151,9 @@ echo -e "\e[1;32mKbobine Moonraker component: installation successful. \e[0m"
 if ! $MINIMAL ; then
     klipper_config
     echo -e "\e[1;32mFilament settings: installation successful. \e[0m"
+    optional_component
 fi
+
 
 echo ""
 echo "Thank you for installing Kbobine !"
