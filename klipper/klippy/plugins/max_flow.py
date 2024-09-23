@@ -100,26 +100,18 @@ class MaxFlow:
 
     # Helper to limit z_hop while z_max is reached
     def _get_speed(self, oldpos, newpos, speed):
-        x1, y1, z1, e1 = oldpos
-        x2, y2, z2, e2 = newpos
-
-        dx = x2 - x1
-        dy = y2 - y1
-        dz = z2 - z1
-        de = abs(e2 - e1)
-
-        distance = math.sqrt(dx**2 + dy**2 + dz**2)
-        
+        axes_d = [newpos[i] - oldpos[i] for i in (0, 1, 2, 3)]
+        move_d = math.sqrt(sum([d * d for d in axes_d[:3]]))
 
         # handle extrusion on moves or only extrusion
-        # calculcate filamant effective area and speed
-        if distance > 0.0:
-            e_area = de * self.filament_area / distance
+        # calculcate filament effective area and speed
+        if move_d > 0.000000001:
+            e_area = abs(axes_d[3]) * self.filament_area / move_d
             newspeed = min(speed, self.max_flow / e_area)
         else:
             e_area = self.filament_area
             newspeed = speed
-        flow = newspeed * e_area
+        flow = speed * e_area
 
         return [newspeed, flow]
 
