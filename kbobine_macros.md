@@ -26,6 +26,10 @@ a warning will prompt to add it.
 
 ``spool_id`` Loaded spool id
 
+``<setting>_enabled`` allow setting to be applied with ``APPLY_SETTINGS``.
+
+``<setting>_command`` to overwrite command in ``APPLY_SETTINGS``.
+
 ## Usage / Macros
 
 >[!NOTE]
