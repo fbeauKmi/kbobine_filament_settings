@@ -24,7 +24,7 @@ a warning will prompt to add it.
 
 ``spoolman`` contains spool id, name, vendor and material of current spool
 
-``spool_id`` Loaded spool id
+``spoolid`` Loaded spool id
 
 ``<setting>_enabled`` allow setting to be applied with ``APPLY_SETTINGS``.
 
