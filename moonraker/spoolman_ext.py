@@ -5,10 +5,7 @@
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
 from __future__ import annotations
-import asyncio
-import datetime
 import logging
-import json
 from typing import TYPE_CHECKING, Dict, Any
 
 if TYPE_CHECKING:
@@ -53,7 +50,7 @@ class SpoolManager_ext:
         spool_datas = "{}"
 
         if ws_connected:
-            if not spool_id is None:
+            if spool_id is not None:
                 response = await self.http_client.request(
                     method="GET",
                     url=f"{self.spoolman.spoolman_url}/v1/spool/{spool_id}",
@@ -73,7 +70,7 @@ class SpoolManager_ext:
                     logging.exception(msg)
 
         else:
-            msg = f"Unable to connect Spoolman server"
+            msg = "Unable to connect Spoolman server"
             logging.exception(msg)
 
 

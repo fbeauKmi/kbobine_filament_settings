@@ -104,20 +104,18 @@ klipper_config () {
     echo -e "To finalize installation, insert [include ./${SUBFOLDER}/${CONFIG_DIR}/config.cfg] in your printer.cfg" 
 }
 
-function optional_component(){
-    echo "Kbobine comes with optional klipper module for max_flow" 
-    if prompt "Do you want to install max_flow module. It will restart Klipper" ; then
-        EXTRAS_FOLDER="${KLIPPY_DIR}/extras"
-        if prompt "Are you using Danger-Klipper" ; then
-            EXTRAS_FOLDER="${KLIPPY_DIR}/plugins"
-        fi
-        ln -s "${FS_DIR}/klipper/klippy/plugins/max_flow.py" "${EXTRAS_FOLDER}"
-        echo "max_flow installed in ${EXTRAS_FOLDER}"
-        if prompt "Restart Klipper ?" ; then
-            service klipper restart 
-        fi
-    if
-    
+function klipper_component(){
+    echo "Installing klipper modules" 
+    EXTRAS_FOLDER="${KLIPPY_DIR}/extras"
+    [[ -d "${KLIPPY_DIR}/plugins" ]] && EXTRAS_FOLDER="${KLIPPY_DIR}/plugins"
+    find "${FS_DIR}/klipper/klippy/plugins" -name "*.py" -type f | while read file; do
+        filename=$(basename "$file")
+        ln -s "$file" "${EXTRAS_FOLDER}"
+        echo "$filename installed in ${EXTRAS_FOLDER}"
+    done;
+    if prompt "Restart Klipper ?" ; then
+        service klipper restart 
+    fi 
 }
 
 HELP=false; MINIMAL=false; FORCE=false;
@@ -139,23 +137,23 @@ if [[ $HELP == true ]]; then
   exit 0
 fi
 
-echo "   +-------------------------+"
-echo "   |                         |"
-echo "   |    KBobine Installer    |"
-echo "   |                         |"
-echo "   +-------------------------+"
-echo ""
+echo "   +-------------------------+
+   |                         |
+   |    KBobine Installer    |
+   |                         |
+   +-------------------------+
+"
 
 moonraker_component
 echo -e "\e[1;32mKbobine Moonraker component: installation successful. \e[0m"
 if ! $MINIMAL ; then
     klipper_config
     echo -e "\e[1;32mFilament settings: installation successful. \e[0m"
-    optional_component
+    klipper_component
 fi
 
 
-echo ""
-echo "Thank you for installing Kbobine !"
-echo "Setup your Klipper/Moonraker config and restart Klipper/Moonraker services."
-echo "See documentation for more informations."
+echo "
+Thank you for installing Kbobine !
+Setup your Klipper/Moonraker config and restart Klipper/Moonraker services.
+See documentation for more informations."
