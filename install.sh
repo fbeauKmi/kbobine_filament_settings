@@ -66,7 +66,7 @@ klipper_config () {
         exit 1
     fi
 
-    cp  "${FS_DIR}/config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
+    cp  "${FS_DIR}/klipper_config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
     if ! grep -qF "[include spoolman_ext.conf]" "${USER_CONFIG_DIR}/moonraker.conf"; then
         printf "\n\n[include spoolman_ext.conf]\n" >> "${USER_CONFIG_DIR}/moonraker.conf"
         echo -e "\e[1;32mspoolman_ext.conf installed in moonraker.conf \e[0m"
@@ -84,18 +84,18 @@ klipper_config () {
     if [ ! -d "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}" ]; then
         mkdir "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     fi
-    ln -s "${FS_DIR}/config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
-    ln -s "${FS_DIR}/config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
+    ln -s "${FS_DIR}/klipper_config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
+    ln -s "${FS_DIR}/klipper_config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     
     if [ ! -e "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/config.cfg" ]; then
-        cp  "${FS_DIR}/config/config.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
+        cp  "${FS_DIR}/klipper_config/config.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
     else
         echo -e "\e[1;31mconfig.cfg already installed, update it manually if needed \e[0m"
     fi
         
     if prompt "Do you want to insall Klippain addon ?"; then
         if [ ! -e "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/klippain.cfg" ]; then
-            cp  "${FS_DIR}/config/klippain.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
+            cp  "${FS_DIR}/klipper_config/klippain.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
             echo -e "[include ./${SUBFOLDER}/${CONFIG_DIR}/config.cfg]" 
         else
             echo -e "\e[1;31mklippain.cfg already installed, update it manually if needed \e[0m"
