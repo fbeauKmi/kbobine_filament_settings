@@ -7,25 +7,34 @@
 import ast
 import json
 
+
 class GlobalVars:
-    def __init__(self,config):
+    def __init__(self, config):
+        self.config = config
         self.vars = {}
-    
-    def set_var(self, section, value):
+        self.filename = config.get("filename", None)
+        if config.has_section("vars"):
+            raise config.error("'vars' must be a named section. See docs.")
+
+    def set_var(self, section, variable, value, save=False):
         if section not in self.vars:
             self.vars[section] = {}
-        self.vars[section].update(value)
-    
-    def get_var(self, section, name, default=None):
+        self.vars[section][variable] = value
+        if save:
+            configfile = self.printer.lookup_object("configfile")
+            configfile.set(section, variable, json.dumps(value, indent=2))
+            self.gcode.respond_info(
+                "Use SAVE_CONFIG command to keep new value for `%s` in printer"
+                "config at restart." % variable
+            )
+
+    def clear_var(self, section, name):
         if section in self.vars:
-            return self.vars[section].get(name, default)
-        return default
-    
-    def get_vars(self,section):
-        return self.vars.get(section,{})
-    
-    def get_status(self,eventtime):
+            self.vars[section].pop(name, None)
+
+    def get_status(self, eventtime):
         return self.vars
+
 
 class Vars:
     def __init__(self, config):
@@ -42,9 +51,8 @@ class Vars:
 
         self.vars = {}
         for opt in options:
-            self.vars[opt.lower()] = self.get_literal(config.get(opt))
-        
-        self.globalvars.set_var(self.section, self.vars)
+            v = self.get_literal(config.get(opt))
+            self.globalvars.set_var(self.section, opt, v)
 
         self.gcode.register_command(
             f"SET_VARS_{self.section.upper()}",
@@ -52,38 +60,46 @@ class Vars:
             desc=self.cmd_SET_VARIABLE_help,
         )
 
+        self.gcode.register_command(
+            f"DEL_VARS_{self.section.upper()}",
+            self.cmd_DEL_VARIABLE,
+            desc=self.cmd_DEL_VARIABLE_help,
+        )
+
     cmd_SET_VARIABLE_help = "Set the value of a global variable"
 
     def cmd_SET_VARIABLE(self, gcmd):
-        configfile = self.printer.lookup_object("configfile")
         save = gcmd.get_int("SAVE", 0, minval=0, maxval=1)
         variables = gcmd.get_command_parameters()
-        v = dict(self.globalvars.get_vars(self.section))
         for variable, value in variables.items():
             variable = variable.lower()
             if variable == "save":
                 continue
 
-            v[variable] = self.get_literal(value)
+            self.globalvars.set_var(
+                self.section, variable, self.get_literal(value), save
+            )
 
-            if save:
-                configfile.set(self.section, variable, value)
-                self.gcode.respond_info(
-                    "Use SAVE_CONFIG command to keep new value for `%s` in printer"
-                    "config at restart." % (variable)
-                )
-        self.globalvars.set_var(self.section, v)
+    cmd_DEL_VARIABLE_help = (
+        "Remove a global variable. The config file remains unchanged."
+    )
+
+    def cmd_DEL_VARIABLE(self, gcmd):
+        variable = gcmd.get("VARIABLE")
+        variable = variable.lower()
+        self.globalvars.clear_var(self.section, variable)
 
     def get_literal(self, value):
         try:
             literal = ast.literal_eval(value)
-            json.dumps(literal, separators=(",", ":"), indent=2)
             return literal
         except Exception:
             return value
 
+
 def load_config(config):
     return GlobalVars(config)
+
 
 def load_config_prefix(config):
     return Vars(config)
