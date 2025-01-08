@@ -77,7 +77,7 @@ class GlobalVars:
 
     def write_vars(self):
         varfile = configparser.ConfigParser()
-        for section, options in self.filevars.items():
+        for section, _ in self.filevars.items():
             vars_section = "vars %s" % section
             varfile.add_section(vars_section)
             for key, value in self.filevars[section].items():
