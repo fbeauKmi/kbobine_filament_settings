@@ -58,8 +58,6 @@ Useful when you want to test value while printing for example.
 
 ``core/*`` files that contains functions. You don't have to edit this one
 
-``addons/save_variables.cfg`` to include if there's no \[saved_variable\] section in the config.
-
 ``klippain.cfg`` an experimental feature that populate ``material_parameters`` variable of Klippain with stored settings. Allowed settings : 'pressure_advance', 'retract_length', 'unretract_extra_length', 'retract_speed', 'unretract_speed', 'filter_speed', 'additional_z_offset', 'filament_sensor'. 
 Initial ``material_parameters`` is used as reference according material type from Spoolman
 More information about [Klippain]()
