@@ -6,7 +6,7 @@ USER_CONFIG_DIR="${HOME}/printer_data/config"
 
 FS_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-CONFIG_DIR="k_bobine"
+CONFIG_DIR="kbobine"
 
 usage() {
   cat << EOF
