@@ -8,7 +8,7 @@ A klipper helper to limit print speed according max flow
 [max_flow]
 #enable: False
 #   Set to `True` to enable at startup
-max_flow: 35.0
+value: 35.0
 #   Flow in mm^3/s the toolhead must not exceed.
 ```
 
@@ -20,7 +20,7 @@ The following commands are available when
 [max_flow](#configuration-reference) is enabled.
 
 ### SET_MAX_FLOW
-`SET_MAX_FLOW ENABLE=[0|1] MAX_FLOW=<value>`: Set the values
+`SET_MAX_FLOW ENABLE=[0|1] VALUE=<value>`: Set the values
 for max_flow. MAX_FLOW value must be in mm^3/s
 
 ### GET_MAX_FLOW
@@ -30,7 +30,7 @@ Report the current values
 
 The following information is available in the
 `max_flow` object:
-- `max_flow`: The value of actual setting in mm^3/s
+- `value`: The value of actual setting in mm^3/s
 - `request_flow`: The value of last requested extrusion in mm^3/s
 - `enabled`: `True` if the max_flow is used, if not `False`
 

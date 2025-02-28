@@ -14,7 +14,7 @@ class MaxFlow:
         self.printer = config.get_printer()
 
         self.enable = self.config_ref.getboolean("enable", False)
-        self.max_flow = self.config_ref.getfloat("max_flow", 999999.0, minval=1)
+        self.max_flow = self.config_ref.getfloat("value", 999999.0, minval=1)
 
         self.last_position = [0.0, 0.0, 0.0, 0.0]
         self.speed = 25.0
@@ -61,7 +61,7 @@ class MaxFlow:
     def cmd_SET_MAX_FLOW(self, gcmd):
         enable = 1 if self.enable else 0
         self.enable = gcmd.get_int("ENABLE", enable, minval=0, maxval=1) == 1
-        self.max_flow = gcmd.get_float("MAX_FLOW", self.max_flow, minval=1.0)
+        self.max_flow = gcmd.get_float("VALUE", self.max_flow, minval=1.0)
         if not self.enable:
             self.flow = 0.0
 
@@ -70,7 +70,7 @@ class MaxFlow:
 
     def cmd_GET_MAX_FLOW(self, gcmd):
         gcmd.respond_info(
-            "MAX_FLOW=%.2f REQUEST_FLOW=%.2f ENABLED=%s"
+            "MAX_FLOW VALUE=%.2f REQUEST_FLOW=%.2f ENABLED=%s"
             % (
                 self.max_flow,
                 self.flow,
