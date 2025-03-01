@@ -27,7 +27,7 @@ class Shrinkage:
 
         self.pause_resume = self.printer.lookup_object("pause_resume")
 
-        # Register new G-code commands for Setting max_flow
+        # Register new G-code commands
         self.gcode = self.printer.lookup_object("gcode")
         self.gcode.register_command(
             "SET_SHRINKAGE",
@@ -94,7 +94,7 @@ class Shrinkage:
         self._deltacenter()
 
     # Command to get the shrinkage parameters
-    cmd_GET_SHRINKAGE_help = "Set max_flow parameters"
+    cmd_GET_SHRINKAGE_help = "Get shrinkage values"
 
     def cmd_GET_SHRINKAGE(self, gcmd):
         gcmd.respond_info(
