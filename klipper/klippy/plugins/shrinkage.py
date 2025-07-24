@@ -98,7 +98,7 @@ class Shrinkage:
 
     def cmd_GET_SHRINKAGE(self, gcmd):
         gcmd.respond_info(
-            "SHRINKAGE XY_VALUE=%.2f Z_VALUE=%.2f ENABLED=%s"
+            "SHRINKAGE XY_VALUE=%.4f Z_VALUE=%.4f ENABLED=%s"
             % (
                 self.shrinkage_xy,
                 self.shrinkage_z,

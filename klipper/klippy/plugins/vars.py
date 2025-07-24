@@ -92,7 +92,7 @@ class GlobalVars:
 
     def get_status(self, eventtime):
         # Return the current variables
-        return self.vars
+        return {'eventtime' : eventtime, **self.vars}
 
 
 class Vars:
