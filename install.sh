@@ -6,7 +6,7 @@ USER_CONFIG_DIR="${HOME}/printer_data/config"
 
 FS_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 
-CONFIG_DIR="k_bobine"
+CONFIG_DIR="kbobine"
 
 usage() {
   cat << EOF
@@ -66,7 +66,7 @@ klipper_config () {
         exit 1
     fi
 
-    cp  "${FS_DIR}/config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
+    cp  "${FS_DIR}/klipper_config/spoolman_ext.conf" "${USER_CONFIG_DIR}/"
     if ! grep -qF "[include spoolman_ext.conf]" "${USER_CONFIG_DIR}/moonraker.conf"; then
         printf "\n\n[include spoolman_ext.conf]\n" >> "${USER_CONFIG_DIR}/moonraker.conf"
         echo -e "\e[1;32mspoolman_ext.conf installed in moonraker.conf \e[0m"
@@ -84,18 +84,18 @@ klipper_config () {
     if [ ! -d "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}" ]; then
         mkdir "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     fi
-    ln -s "${FS_DIR}/config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
-    ln -s "${FS_DIR}/config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
+    ln -s "${FS_DIR}/klipper_config/core" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
+    ln -s "${FS_DIR}/klipper_config/addons" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}"
     
     if [ ! -e "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/config.cfg" ]; then
-        cp  "${FS_DIR}/config/config.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
+        cp  "${FS_DIR}/klipper_config/config.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
     else
         echo -e "\e[1;31mconfig.cfg already installed, update it manually if needed \e[0m"
     fi
         
     if prompt "Do you want to insall Klippain addon ?"; then
         if [ ! -e "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/klippain.cfg" ]; then
-            cp  "${FS_DIR}/config/klippain.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
+            cp  "${FS_DIR}/klipper_config/klippain.cfg" "${USER_CONFIG_DIR}/${SUBFOLDER}/${CONFIG_DIR}/"
             echo -e "[include ./${SUBFOLDER}/${CONFIG_DIR}/config.cfg]" 
         else
             echo -e "\e[1;31mklippain.cfg already installed, update it manually if needed \e[0m"
@@ -104,20 +104,18 @@ klipper_config () {
     echo -e "To finalize installation, insert [include ./${SUBFOLDER}/${CONFIG_DIR}/config.cfg] in your printer.cfg" 
 }
 
-function optional_component(){
-    echo "Kbobine comes with optional klipper module for max_flow" 
-    if prompt "Do you want to install max_flow module. It will restart Klipper" ; then
-        EXTRAS_FOLDER="${KLIPPY_DIR}/extras"
-        if prompt "Are you using Danger-Klipper" ; then
-            EXTRAS_FOLDER="${KLIPPY_DIR}/plugins"
-        fi
-        ln -s "${FS_DIR}/klipper/klippy/plugins/max_flow.py" "${EXTRAS_FOLDER}"
-        echo "max_flow installed in ${EXTRAS_FOLDER}"
-        if prompt "Restart Klipper ?" ; then
-            service klipper restart 
-        fi
-    if
-    
+function klipper_component(){
+    echo "Installing klipper modules" 
+    EXTRAS_FOLDER="${KLIPPY_DIR}/extras"
+    [[ -d "${KLIPPY_DIR}/plugins" ]] && EXTRAS_FOLDER="${KLIPPY_DIR}/plugins"
+    find "${FS_DIR}/klipper/klippy/plugins" -name "*.py" -type f | while read file; do
+        filename=$(basename "$file")
+        ln -s "$file" "${EXTRAS_FOLDER}"
+        echo "$filename installed in ${EXTRAS_FOLDER}"
+    done;
+    if prompt "Restart Klipper ?" ; then
+        service klipper restart 
+    fi 
 }
 
 HELP=false; MINIMAL=false; FORCE=false;
@@ -139,23 +137,23 @@ if [[ $HELP == true ]]; then
   exit 0
 fi
 
-echo "   +-------------------------+"
-echo "   |                         |"
-echo "   |    KBobine Installer    |"
-echo "   |                         |"
-echo "   +-------------------------+"
-echo ""
+echo "   +-------------------------+
+   |                         |
+   |    KBobine Installer    |
+   |                         |
+   +-------------------------+
+"
 
 moonraker_component
 echo -e "\e[1;32mKbobine Moonraker component: installation successful. \e[0m"
 if ! $MINIMAL ; then
     klipper_config
     echo -e "\e[1;32mFilament settings: installation successful. \e[0m"
-    optional_component
+    klipper_component
 fi
 
 
-echo ""
-echo "Thank you for installing Kbobine !"
-echo "Setup your Klipper/Moonraker config and restart Klipper/Moonraker services."
-echo "See documentation for more informations."
+echo "
+Thank you for installing Kbobine !
+Setup your Klipper/Moonraker config and restart Klipper/Moonraker services.
+See documentation for more informations."

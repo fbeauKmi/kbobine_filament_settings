@@ -33,7 +33,8 @@ found, settings from equivalent spool/material/default can be imported.
 Pressure advance and firmware retraction was the first parameters introduced in 
 early version. But you can store any settings you need in your Macros.
 For example, I store temperatures, filter use, filament sensor use, extrude_factor...
-I use some extended functions to limit max_flow and fan_speed during the print.  
+I use some extended functions to limit max_flow and fan_speed during the print.
+An experimental klippy module introduces shrinkage compensation at run time  
 
 ### Why store the settings inside Klipper config instead of Spoolman ?
 These settings are mostly printer/toolhead dependent. It also allows you to

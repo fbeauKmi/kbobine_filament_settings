@@ -14,10 +14,9 @@ class MaxFlow:
         self.printer = config.get_printer()
 
         self.enable = self.config_ref.getboolean("enable", False)
-        self.max_flow = self.config_ref.getfloat("max_flow", 999999.0, minval=1)
+        self.max_flow = self.config_ref.getfloat("value", 999999.0, minval=1)
 
         self.last_position = [0.0, 0.0, 0.0, 0.0]
-        self.last_speed = 25.0
         self.speed = 25.0
         self.flow = 0.0
 
@@ -62,7 +61,7 @@ class MaxFlow:
     def cmd_SET_MAX_FLOW(self, gcmd):
         enable = 1 if self.enable else 0
         self.enable = gcmd.get_int("ENABLE", enable, minval=0, maxval=1) == 1
-        self.max_flow = gcmd.get_float("MAX_FLOW", self.max_flow, minval=1.0)
+        self.max_flow = gcmd.get_float("VALUE", self.max_flow, minval=1.0)
         if not self.enable:
             self.flow = 0.0
 
@@ -71,7 +70,7 @@ class MaxFlow:
 
     def cmd_GET_MAX_FLOW(self, gcmd):
         gcmd.respond_info(
-            "MAX_FLOW=%.2f REQUEST_FLOW=%.2f ENABLED=%s"
+            "MAX_FLOW VALUE=%.2f REQUEST_FLOW=%.2f ENABLED=%s"
             % (
                 self.max_flow,
                 self.flow,
@@ -96,24 +95,23 @@ class MaxFlow:
 
         self.next_transform.move(newpos, new_speed)
         self.last_position[:] = newpos
-        self.last_speed = speed
 
-    # Helper to limit z_hop while z_max is reached
+    # Helper to limit speed according to flow
     def _get_speed(self, oldpos, newpos, speed):
-        axes_d = [newpos[i] - oldpos[i] for i in (0, 1, 2, 3)]
-        move_d = math.sqrt(sum([d * d for d in axes_d[:3]]))
+        axis_differences = [newpos[i] - oldpos[i] for i in (0, 1, 2, 3)]
+        distance_moved = math.sqrt(sum([d * d for d in axis_differences[:3]]))
 
         # handle extrusion on moves or only extrusion
-        # calculcate filament effective area and speed
-        if move_d > 0.000000001:
-            e_area = abs(axes_d[3]) * self.filament_area / move_d
-            newspeed = min(speed, self.max_flow / e_area)
+        # calculate filament effective area and speed
+        if distance_moved > 0.000000001:
+            e_area = abs(axis_differences[3]) * self.filament_area / distance_moved
+            newspeed = speed if e_area == 0 else min(speed, self.max_flow / e_area)
         else:
             e_area = self.filament_area
             newspeed = speed
-        flow = speed * e_area
+        flow = newspeed * e_area
 
-        return [newspeed, flow]
+        return (newspeed, flow)
 
 
 def load_config(config):
