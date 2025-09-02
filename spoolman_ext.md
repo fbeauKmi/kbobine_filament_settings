@@ -24,7 +24,8 @@ gcode:
 The ``gcode`` is callable from a klipper macro with
 ``{action_call_remote_method("get_spoolman_datas")}``.  It is useful after a firmware restart for exemple. See example below.
 
-## Simple use case: Check in ``PRINT_START`` if a spool is selected
+## Simple use cases:
+### Check in ``PRINT_START`` if a spool is selected
 
 Setup `` moonraker.conf``
 ```ini
@@ -53,4 +54,44 @@ gcode:
     ... <The rest of your PRINT_START here>
 ```
 
+### Check in ``PRINT_START`` the selected material
 
+Setup `` moonraker.conf``
+```ini
+[spoolman_ext]
+gcode:
+    SET_GCODE_VARIABLE MACRO=PRINT_START VARIABLE=material_loaded VALUE={% if spool.id %}'"{
+        spool.filament.material }"'{% else %}None{% endif %}
+```
+
+add in Klipper config 
+```ini
+### handler to load spoolman datas at startup
+[delayed_gcode _KLIPPER_STARTUP_HANDLER]
+# delay to call spool datas after klipper startup
+initial_duration: 5
+# Ask moonraker to render template configured in spoolman_ext.conf 
+gcode: {action_call_remote_method("get_spoolman_datas")} 
+```
+
+Modify PRINT_START Macro
+```ini
+[gcode_macro PRINT_START]
+variable_material_loaded: None
+gcode:
+    ... <The first steps of your PRINT_START here>
+    
+    {% if material_loaded|upper in ["ABS","ASA"] %}
+        ... YOUR ACTION FOR ABS
+    {% elif material_loaded|upper == "PLA" %}
+        ... YOUR ACTION FOR PLA
+    {% elif material_loaded|upper == "TPU" %}
+        ... YOUR ACTION FOR TPU
+    {% elif not material_loaded %}
+        {action_raise_error("No material loaded")}
+    {% else %}
+        ... YOUR ACTION FOR OTHER TYPES OF MATERIAL
+    {% endif %}
+        
+    ... <The last steps of your PRINT_START here>
+```
