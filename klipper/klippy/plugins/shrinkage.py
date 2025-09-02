@@ -12,6 +12,8 @@ class Shrinkage:
         self.config_ref = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
+        self.toolhead = None #object will be set on connect
+        self.gcode_move = None #object will be set on connect
 
         self.enable = False
         self.allowed = False
@@ -44,9 +46,9 @@ class Shrinkage:
     def _handle_connect(self):
         self.gcode_move = self.printer.lookup_object("gcode_move")
 
-        toolhead = self.printer.lookup_object("toolhead")
+        self.toolhead = self.printer.lookup_object("toolhead")
 
-        kin_status = toolhead.get_kinematics().get_status(None)
+        kin_status = self.toolhead.get_kinematics().get_status(None)
         # Calculate the center of the bed
         self.center[0] = (
             kin_status["axis_minimum"][0] + kin_status["axis_maximum"][0]
@@ -76,7 +78,7 @@ class Shrinkage:
         return {
             "enabled": self.enable,
             "xy_value": self.shrinkage_xy,
-            'z_value': self.shrinkage_z,
+            "z_value": self.shrinkage_z,
         }
 
     # Command to set the shrinkage parameters
@@ -116,10 +118,11 @@ class Shrinkage:
     def move(self, newpos, speed):
         # Shrinkage is only applied when the printer is printing
         if self.enable:
-            # Disable the shrinkage when the printer is paused
-            if (
-                self.allowed
-                and self.pause_resume.get_status(self.reactor.monotonic())["is_paused"]
+            # Disable the shrinkage when the printer is paused or not homed
+            eventtime = self.reactor.monotonic()
+            if self.allowed and (
+                self.pause_resume.get_status(eventtime)["is_paused"]
+                or self.toolhead.get_status(eventtime)["homed_axes"] != "xyz"
             ):
                 self.allowed = False
             if self.allowed:
