@@ -48,11 +48,15 @@ class GlobalVars:
             self.vars = {
                 section: options.copy() for section, options in self.filevars.items()
             }
+            
+    def init_section(self, section):
+        # Initialize a section in the vars dictionary if it doesn't exist
+        if section not in self.vars:
+            self.vars[section] = {}
 
     def init_var(self, section, varname, value, replace=True):
         # Initialize a variable in the specified section
-        if section not in self.vars:
-            self.vars[section] = {}
+        self.init_section(section)
         if self.vars[section].get(varname) is None or replace:
             self.vars[section][varname] = value
 
@@ -105,6 +109,7 @@ class Vars:
         self.gcode = self.printer.lookup_object("gcode")
 
         self.globalvars = self.printer.load_object(config, "vars")
+        self.globalvars.init_section(self.section)
 
         try:
             options = config.get_prefix_options("")
