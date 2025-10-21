@@ -34,7 +34,7 @@ z_value: 1.0
 #   Min value 0.95, max value 1.00
 ```
 
-Shrinkage compensation is always disabled at print startup. You must enable it at the end of your Strat print macro. Compensation occurs only during printing, never when the printer is paused to avoid issues with PARK, NOZZLE_CLEAN.
+Shrinkage compensation is always disabled at print startup. You must enable it at the end of your Start print macro. Compensation occurs only during printing, never when the printer is paused to avoid issues with PARK, NOZZLE_CLEAN.
 
 ## Commands
 
