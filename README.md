@@ -9,7 +9,7 @@ bugs, use it whith care**
 Kbobine is a gateway between Spoolman and Klipper, it allows to send current spool
 informations to Klipper. 
 Then, it let you store settings inside Klipper
-configuration.
+configuration and back it up to Spoolman.
 
 **Compatibility: Fluidd/Klipperscreen/Mainsail UI.**
 
@@ -22,9 +22,9 @@ configuration.
 ### What it does ?
 At Klipper startup or when a spool is selected (by UI or macro), it informs 
 Klipper and send back informations from Spoolman to klipper (material, vendor,
-name of the filament, ...).
-Then Klipper apply settings previously set for this spool. If no information 
-found, settings from equivalent spool/material/default can be imported.
+name of the filament, ..., or stored settings from other printers).
+Klipper apply settings previously set for this spool. If no information 
+found, settings from equivalent spool/material/default ot other pinters can be imported.
 
 > [!NOTE] 
 > With the [minimal install](#run-the-installer) you can use kbobine just to share information between klipper and spoolman. [More informations on how ``spoolman_ext.py`` works](./spoolman_ext.md)
@@ -36,16 +36,13 @@ For example, I store temperatures, filter use, filament sensor use, extrude_fact
 I use some extended functions to limit max_flow and fan_speed during the print.
 An experimental klippy module introduces shrinkage compensation at run time  
 
-### Why store the settings inside Klipper config instead of Spoolman ?
-These settings are mostly printer/toolhead dependent. It also allows you to
-call settings even if connexion to spoolman is lost.
 
 ## How it works ?
-KBobine use a moonraker component ``spoolman_ext.py`` to track spool change then send informations about spool to klipper.
-It stores infos about spool in a saved_variable array ``kbobine_table`` once the spool is loaded. If no setting is detected, it will prompt to calibrate filament or load settings from other filaments in table.
+KBobine use a moonraker component ``spoolman_ext.py`` or ``kbobine.py`` to track spool change then send informations about spool to klipper.
+It stores infos about spool in a json file once the spool is loaded. If no setting is detected, it will prompt to calibrate filament or load settings from other known filaments.
 Then it populates a ``current_settings`` array from default settings and stored settings. This array can be called from your Macros like this:
 
-```  {% set settings = printer['gcode_macro _KBOBINE'].current_settings %} ```
+```  {% set settings = printer.kbobine.current_settings %} ```
 
 ## How to install it ?
 
@@ -76,10 +73,15 @@ Optional args:
 >sudo systemctl restart moonraker
 >```
 
+### Create kbobine extra_fields in Spoolman
+
+To share filament settings between different printers, add Extra Fields in Spoolman for both filaments and spools. Create a text field named "kbobine" to store saved parameters (temperatures, PA, retraction, etc.). Make sure these fields are enabled for both filament and spool entries so KBobine can read and write the data.
+
 ## Uninstall it
 Remove Moonraker component, delete ``kbobine`` folder, Manually remove entries in ``moonraker.conf`` and klipper config
 ```
  unlink ~/moonraker/moonraker/components/spoolman_ext.py
+ unlink ~/moonraker/moonraker/components/kbobine.py
  rm -rf ~/kbobine
  ```
 

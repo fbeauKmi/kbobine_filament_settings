@@ -7,34 +7,33 @@ Configuration is done by adjusting ``k_bobine/config.cfg``
 
 Parameters stored in a `vars` section named ``KBOBINE``:
 ```
-[vars KBOBINE]
-verbose: 0
-#   Allowed values 0 or 1. 1 means more verbose in console.
-autoremove_default: 0 
-#   0 or 1 Autoremove settings when equal to default (see CLEAN_DEFAULT)
-apply_on_load: 1
-#   0 or 1 Apply settings on load / change (see `APPLY_SETTINGS`). In order to
+[kbobine]
+apply_on_load: true
+#   true|false. Apply settings on load / change (see `APPLY_SETTINGS`). In order to
 #   apply settings `<setting>_enabled: True` variable must be set for some
 #   parameters(fan_speed, max_flow, extruder_temp, bed_temp, chamber_temp,
 #   filament_sensor). 
-default: {'parameter': value}
-#   Array containing default settings. Settings can be add/remove/change be
-#   sure to modify macros `SET_SPOOL` and `SET_LOADED_MATERIAL` according this
-#   change.
-required: []
-#   A list of required settings, If a spool doesn't have this settings. A
+default: 
+     ## Default settings    [default, min, max]
+    bed_temp              : [ 100,  50, 125],
+    extruder_temp         : [ 250, 190, 270],
+#   Settings to store (depend of the user need)
+required: bed_temp,extruder_temp
+#   Coma separated list of required settings, If a spool doesn't have this settings. A
 #   warning will prompt to add it.
-th_depend: []
+th_depend: extruder_temp
 #   A list of settings that depend on toolhead. For now it only check
 #   nozzle_diameter of [extruder] section, the mechanism will be improved.
 #   TO BE IMPROVE
+
+[vars KBOBINE]
 <setting>_enabled: <string>
 #   allow setting to be applied with `APPLY_SETTINGS`.
 <setting>_command: <string>
 #   command to overwrite command in `APPLY_SETTINGS`.
 ```
 
-## Usage / Macros
+## Usage
 
 >[!NOTE]
 >Macros are optimized for easy use in the Fluidd/Mainsail UI
