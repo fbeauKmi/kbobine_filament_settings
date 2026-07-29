@@ -35,7 +35,7 @@ class Kbobine:
     def _handle_ready(self):
         self.ks.printer_cmds = self.ks.gcode.get_status(0).get("commands", {})
         my_timer = self.reactor.register_timer(
-            self._call_get_spoolman_datas, self.reactor.monotonic() + 1
+            self._call_get_spoolman_datas, self.reactor.monotonic() + 3
         )
         self.my_timer = my_timer
 
@@ -150,6 +150,7 @@ class KbobineSettingsHelper:
     def __init__(self, config, wh):
         self.config = config
         self.printer = config.get_printer()
+        self.reactor = self.printer.get_reactor()
         self.gcode = self.printer.lookup_object("gcode")
 
         # Initialize data structures
@@ -297,8 +298,8 @@ class KbobineSettingsHelper:
 
         try:
             extruder = toolhead.get_extruder()
-            nozzle_diameter = extruder.nozzle_diameter * 10
-            return str(nozzle_diameter)
+            nozzle_diameter = format(extruder.nozzle_diameter * 10, ".10g")
+            return nozzle_diameter
         except (NameError, AttributeError):
             return "dummy"
 
@@ -686,6 +687,8 @@ class KbobineSettingsHelper:
             "shrinkage_z": ("SET_SHRINKAGE", lambda v, s: f"Z_VALUE={v}"),
         }
 
+        eventtime = self.reactor.monotonic()
+
         for setting in settings:
             if setting not in self.current:
                 continue
@@ -704,12 +707,13 @@ class KbobineSettingsHelper:
                 toolhead = self.printer.lookup_object("toolhead")
                 if (
                     toolhead.get_extruder().get_name()
-                    and toolhead.get_extruder().get_status().get("target", 0) > 0
+                    and toolhead.get_extruder().get_status(eventtime).get("target", 0)
+                    > 0
                 ):
                     add_action(cmd, "M104", f"S={value}")
             elif setting == "bed_temp":
                 heater_bed = self.printer.lookup_object("heater_bed", None)
-                if heater_bed and heater_bed.get_status().get("target", 0) > 0:
+                if heater_bed and heater_bed.get_status(eventtime).get("target", 0) > 0:
                     add_action(cmd, "M140", f"S={value}")
 
         for action, values in actions.items():
