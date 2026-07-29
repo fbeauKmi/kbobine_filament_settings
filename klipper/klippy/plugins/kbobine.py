@@ -235,7 +235,7 @@ class KbobineSettingsHelper:
         """Parse parameters.
         Ensure there's 3 values and min <= default <= max"""
         if keys is None:
-            keys = [self.DEFAULT_KEY, self.MIN_KEY, self.MAX_KEY]
+            keys = [self.DEFAULT_KEY, self.MIN_KEY, self.MAX_KEY, "enable", "command"]
         if default == sentinel:
             parameters = self.config.get(name)
         else:
@@ -263,18 +263,25 @@ class KbobineSettingsHelper:
                     )
                 values_str = values_str[1:-1].strip()  # Remove brackets
                 values = [v.strip() for v in values_str.split(",") if v.strip()]
-                if len(values) != 3:
+                if len(values) < 3 or len(values) > 5:
                     raise ValueError(
-                        f"Expected 3 values for parameter {name}, got {len(values)}"
+                        f"Expected between 3 and 5 values for parameter {name}, got {len(values)}"
                     )
                 numeric_values = []
-                for v in values:
+                for i, v in enumerate(values):
                     try:
-                        numeric_values.append(float(v))
-                    except ValueError:
-                        raise ValueError(
-                            f"Non-numeric value '{v}' for parameter {name}"
-                        )
+                        if i < 3:
+                            numeric_values.append(float(v))
+                        elif i == 3:
+                            numeric_values.append(v.lower() in ("true"))
+                        elif i == 4:
+                            numeric_values.append(v)
+                    except (ValueError, IndexError):
+                        raise ValueError(f"invalid value '{v}' for parameter {name}")
+                if len(numeric_values) == 3:
+                    numeric_values.append(True)  # default for enable
+                if len(numeric_values) == 4:
+                    numeric_values.append(None)  # default for command
                 if not (numeric_values[1] <= numeric_values[0] <= numeric_values[2]):
                     raise ValueError(
                         f"Values for parameter {name} must satisfy min <= default <= max"
@@ -659,13 +666,14 @@ class KbobineSettingsHelper:
 
         # Mapping of settings to (command, value_formatter)
         setting_map = {
+            "chamber_temp": ("M141", lambda v, s: f"S={v}"),
             "speed_factor": ("M220", lambda v, s: f"S{v * 100.0:.3f}"),
             "extrude_factor": ("M221", lambda v, s: f"S{v * 100.0:.3f}"),
             "max_flow": ("SET_MAX_FLOW", lambda v, s: f"VALUE={v}"),
             "fan_speed": ("_KBOBINE_FAN_SPEED", lambda v, s: f"S={v}"),
             "filament_sensor": (
                 "SET_FILAMENT_SENSOR",
-                lambda v, s: f'SENSOR="filament_sensor" ENABLE={v}',
+                lambda v, s: f'SENSOR="{s}" ENABLE={v}',
             ),
             "pressure_advance": ("SET_PRESSURE_ADVANCE", lambda v, s: f"ADVANCE={v}"),
             "pa_smooth_time": ("SET_PRESSURE_ADVANCE", lambda v, s: f"SMOOTH_TIME={v}"),
@@ -681,12 +689,16 @@ class KbobineSettingsHelper:
         for setting in settings:
             if setting not in self.current:
                 continue
+            if self.parameters.get(setting).get("enable") is False:
+                continue
 
             cmd = self.commands.get(setting, None)
             value = self.current[setting]
 
             if setting in setting_map:
                 command, formatter = setting_map[setting]
+                if self.parameters.get(setting).get("command") is not None:
+                    command = self.parameters.get(setting).get("command")
                 add_action(cmd, command, formatter(value, setting.upper()))
             elif setting == "extruder_temp":
                 toolhead = self.printer.lookup_object("toolhead")

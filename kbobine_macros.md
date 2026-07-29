@@ -14,8 +14,8 @@ apply_on_load: true
 #   parameters(fan_speed, max_flow, extruder_temp, bed_temp, chamber_temp,
 #   filament_sensor). 
 default: 
-     ## Default settings    [default, min, max]
-    bed_temp              : [ 100,  50, 125],
+     ## Default settings    [default, min, max, enabled, command]
+    bed_temp              : [ 100,  50, 125, True, M104],
     extruder_temp         : [ 250, 190, 270],
 #   Settings to store (depend of the user need)
 required: bed_temp,extruder_temp
@@ -25,6 +25,9 @@ th_depend: extruder_temp
 #   A list of settings that depend on toolhead. For now it only check
 #   nozzle_diameter of [extruder] section, the mechanism will be improved.
 #   TO BE IMPROVE
+store_in_spoolman: true     # True|False Store settings in Spoolman db (see doc)
+spool_file: ~/printer_data/config/spool.json
+# File that contains filament/spool settings
 
 [vars KBOBINE]
 <setting>_enabled: <string>
@@ -36,7 +39,8 @@ th_depend: extruder_temp
 ## Usage
 
 >[!NOTE]
->Macros are optimized for easy use in the Fluidd/Mainsail UI
+>Commands are optimized for easy use in the Fluidd/Mainsail UI,
+>The kbobine module adds fake macros at klipper startup, that can be used in UI
 
 `SET_SPOOL` Store settings for current spool. If auto apply is enabled
 the settings will be apply at change.
@@ -53,15 +57,11 @@ Useful when you want to test value while printing for example.
 
 `GET_LOADED_MATERIAL` Display actual loaded settings in console.
 
-`DEL_SPOOL` Delete spool settings from `kbobine_table`.
-
-`CLEAN_DEFAULT` Remove settings from `kbobine_table` for current filament if same as default value .
+`DEL_SPOOL` Delete spool settings from json file.
 
 `SELECT_MATERIAL` Choose a material among available settings on printer (only when spoolman is unavailable)
 
 ## Includes
-
-`core/*` files that contains functions. You don't have to edit this one
 
 `addons/buildplate.cfg` : do not depend of filament settings, store `z_offset` value against buildplate.
 
@@ -77,8 +77,9 @@ Useful when you want to test value while printing for example.
 
 ## Required Klipper modules
 
-To get Kbobine working, install [`vars.py`](./klipper/docs/vars.md).
+To get Kbobine working, install [`kbobine.py`](./klipper/klippy/plugins/kbobine.py).
 
 Additionally, some addons require additional module : 
 - [`max_flow.py`](./klipper/klippy/plugins/max_flow.py) to limit the maximum volumetric extrusion rate.
 - [`shrinkage.py`](./klipper/klippy/plugins/shrinkage.py) to compensate shrinkage via Kbobine instead of slicer.
+- [`vars.py`](./klipper/docs/vars.md) to store variables, required by addons macros.
