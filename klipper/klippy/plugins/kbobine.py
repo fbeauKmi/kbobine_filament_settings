@@ -31,20 +31,26 @@ class Kbobine:
         self._register_commands()
 
         self.printer.register_event_handler("klippy:ready", self._handle_ready)
+        self.my_timer = None
+        self.retry_count = 0
 
     def _handle_ready(self):
         self.ks.printer_cmds = self.ks.gcode.get_status(0).get("commands", {})
-        my_timer = self.reactor.register_timer(
-            self._call_get_spoolman_datas, self.reactor.monotonic() + 3
+        self.my_timer = self.reactor.register_timer(
+            self._call_get_spoolman_datas, self.reactor.monotonic() + 2
         )
-        self.my_timer = my_timer
 
     # Remote called method to get spoolman datas
     def _call_get_spoolman_datas(self, eventtime):
         try:
             self.wh.call_remote_method("get_spoolman_datas")
         except self.printer.command_error:
-            logging.info("Remote Call Error")
+            # Retry Moonraker call for 3 times
+            self.retry_count += 1
+            if self.retry_count < 4:
+                return self.reactor.monotonic() + self.retry_count * 2
+            else:
+                logging.info("Remote Call Error")
         self.reactor.unregister_timer(self.my_timer)
         return self.reactor.NEVER
 
