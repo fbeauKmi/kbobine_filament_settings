@@ -1,13 +1,13 @@
-# kbobine.py - Klipper plugin to manage filament spooling
-#
+# kbobine.py - Klipper plugin to manage filament spool settings and spool data,
+# with integration to Spoolman for remote storage and retrieval of filament settings.
 #
 # Copyright (C) 2025-2026 Frederic Beaucamp <fbeaukmi@mailo.eu>
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
-import re
 import json
 import logging
 import os
+import re
 import socket
 
 
@@ -58,7 +58,7 @@ class Kbobine:
         """Handle web request to set parameters"""
         try:
             spoolman = web_request.get_dict("spoolman")
-            # Check if spool is valid
+
             self.ks.load_spool_data(spoolman)
             web_request.send(
                 "Spool data received for %s " % (self.ks.spool_id or "None")
@@ -148,6 +148,8 @@ class Kbobine:
 
 
 class KbobineSettingsHelper:
+    """Helper class to manage filament settings and spool data for the Kbobine plugin"""
+
     # Constants for parameter keys
     DEFAULT_KEY = "default"
     MIN_KEY = "min"
@@ -175,7 +177,6 @@ class KbobineSettingsHelper:
         self.prompt = PromptUIHelper(self.printer)
 
         # Get configured parameters
-        # TO REPORT IN KBOBINE.MD
         self.apply_on_load = config.getboolean("apply_on_load", default=False)
         self.store_in_spoolman = config.getboolean("store_in_spoolman", default=False)
         self.commands = config.getlists(
@@ -232,15 +233,12 @@ class KbobineSettingsHelper:
                 raise config.error(f"Failed to read {self.spool_file} file: {e}")
 
         # Register commands for the plugin
-        # TO REPORT IN KBOBINE.MD
-
         self.gcode.register_command(
             "IMPORT_KBOBINE", self.cmd_IMPORT_KBOBINE, desc="Import kbobine settings"
         )
 
     def get_parameters(self, config, name, default=sentinel, keys=None) -> dict:
-        """Parse parameters.
-        Ensure there's 3 values and min <= default <= max"""
+        """Parse parameters. Ensure there's 3 values and min <= default <= max"""
         if keys is None:
             keys = [self.DEFAULT_KEY, self.MIN_KEY, self.MAX_KEY, "enable", "command"]
         if default == sentinel:
@@ -630,7 +628,7 @@ class KbobineSettingsHelper:
         return merged_settings
 
     def show_settings(self, type: str = "local db") -> None:
-
+        """Show current settings in the console, either from the local database or from the loaded settings"""
         info = []
 
         if (len(self.current) == 0 and type == "loaded") or (
@@ -659,9 +657,7 @@ class KbobineSettingsHelper:
 
         self.gcode.respond_info("\n".join(info))
 
-    # Apply settings by sending G-code commands to the printer, only for parameters that have a command
-    # associated in the config and that are present in the printer commands list (to avoid sending
-    # commands that would be ignored by the printer and fill the logs with warnings)
+    # Apply settings by sending G-code commands to the printer, if command exists
     def apply_settings(self, settings: list) -> None:
         actions = {}
 
@@ -871,6 +867,12 @@ class KbobineSettingsHelper:
 
     def cmd_SELECT_MATERIAL(self, gcmd):
         """Select material from local db if spoolman is unavailable"""
+        if "spool_id" in self.spoolman:
+            self.gcode.respond_info(
+                "Spoolman is available, use spoolman to select a spool instead of local db"
+            )
+            return
+            
         if gcmd.get("ID", None) is not None:
             self.spool_id = gcmd.get_int("ID", 0)
             if self.spool_id == 0:
@@ -894,12 +896,6 @@ class KbobineSettingsHelper:
             if self.apply_on_load:
                 self.apply_settings(list(self.current.keys()))
             self.prompt.cmd_PROMPT_CLOSE(gcmd)
-            return
-
-        if "spool_id" in self.spoolman:
-            self.gcode.respond_info(
-                "Spoolman is available, use spoolman to select material"
-            )
             return
 
         if len(self.local_data) == 0:
@@ -930,11 +926,6 @@ class KbobineSettingsHelper:
         )
 
 
-# Helper class to send prompts to the UI (Mainsail, Fluidd and KlipperScreen)
-# This class is used to send prompts to the UI for user interaction, such as selecting options,
-# asking questions, or displaying messages. It integrates with the printer's G-code system to display
-# selection dialogs, questions, and notifications, allowing users to interact with the Kbobine plugin
-# for tasks such as importing, confirming, or displaying filament settings.
 class PromptUIHelper:
     """
     Helper class to send interactive prompts and messages to the user interface (UI) of supported Klipper frontends
@@ -954,9 +945,11 @@ class PromptUIHelper:
         self.gcode.run_script_from_command("\n".join(commands))
 
     def select(
-        self, message, options, values, key, action, title="Kbobine", colors=[]
+        self, message, options, values, key, action, title="Kbobine", colors=None
     ) -> None:
         """Send a prompt to the UI with options to select from"""
+        if colors is None:
+            colors = []
         commands = [
             f"begin {title}",
             f"text {message}",
