@@ -6,7 +6,7 @@
 **This repo is still at work, doc is uncomplete and code can present some
 bugs, use it whith care**
 
-Kbobine is a gateway between Spoolman and Klipper, it allows to send current spool
+Kbobine is a gateway between Spoolman and Klipper (via moonraker), it allows to send current spool
 informations to Klipper. 
 Then, it let you store settings inside Klipper
 configuration and back it up to Spoolman.
@@ -38,7 +38,7 @@ An experimental klippy module introduces shrinkage compensation at run time
 
 
 ## How it works ?
-KBobine use a moonraker component ``spoolman_ext.py`` or ``kbobine.py`` to track spool change then send informations about spool to klipper.
+KBobine uses a moonraker component ``spoolman_ext.py`` or ``kbobine.py`` to track spool change then send informations about spool to klipper.
 It stores infos about spool in a json file once the spool is loaded. If no setting is detected, it will prompt to calibrate filament or load settings from other known filaments.
 Then it populates a ``current_settings`` array from default settings and stored settings. This array can be called from your Macros like this:
 
