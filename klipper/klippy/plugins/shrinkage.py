@@ -1,7 +1,10 @@
 # shrinkage.py
 # - Klipper plugin to resize model to compensate for shrinkage
 #
-# Copyright (C) 2025 Frederic Beaucamp <fbeaukmi@mailo.eu>
+# Copyright (C) 2025-2026 Frederic Beaucamp <fbeaukmi@mailo.eu>
+# Changes:
+# - 2025-06-15: Initial version
+# - 2026-07-28: Fixed bug with E offset calculation and added support for pause/resume events
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -12,18 +15,22 @@ class Shrinkage:
         self.config_ref = config
         self.printer = config.get_printer()
         self.reactor = self.printer.get_reactor()
-        self.toolhead = None #object will be set on connect
-        self.gcode_move = None #object will be set on connect
+        self.toolhead = None  # object will be set on connect
+        self.gcode_move = None  # object will be set on connect
 
         self.enable = False
         self.allowed = False
+        self.th_homed = False
+        self.printing = False
         self.shrinkage_xy = self.config_ref.getfloat(
             "xy_value", 1, minval=0.95, maxval=1
         )
         self.shrinkage_z = self.config_ref.getfloat("z_value", 1, minval=0.95, maxval=1)
         self.center = [0.0, 0.0]
         self.deltacenter = [0.0, 0.0]
-        self.last_position = [0.0, 0.0, 0.0, 0.0]
+        self.last_e = 0.0
+        self.base_e = 0.0
+        self.current_offset_e = 0.0
 
         self.printer.register_event_handler("klippy:connect", self._handle_connect)
 
@@ -63,7 +70,7 @@ class Shrinkage:
 
         # Register event handlers
         self.printer.register_event_handler(
-            "print_stats:start_printing", self._allow_shrinkage
+            "print_stats:start_printing", self._is_printing
         )
         self.printer.register_event_handler(
             "print_stats:complete_printing", self._disable_shrinkage
@@ -72,13 +79,57 @@ class Shrinkage:
             "print_stats:cancelled_printing",
             self._disable_shrinkage,
         )
+        self.printer.register_event_handler(
+            "homing:home_rails_end", self.handle_homing_move_end
+        )
+        self.printer.register_event_handler("stepper_enable:motor_off", self.motor_off)
+
+    def handle_homing_move_end(self, homing_state, rails):
+        if 2 in homing_state.get_axes():
+            self.th_homed = True
+
+    def motor_off(self, print_time):
+        self.th_homed = False
+        self._disable_shrinkage()
+
+    def _check_allowed(self):
+        allowed = (
+            not self.pause_resume.get_status(None)["is_paused"]
+            and self.th_homed
+            and self.printing
+        )
+        if allowed != self.allowed:
+            self.allowed = allowed
+            if allowed:
+                self.base_e = (
+                    self.last_e
+                )  # Update base_e to the current last_e when shrinkage is enabled
+            else:
+                self._reset_offset_e()
+
+    # Helper method to allow shrinkage
+    def _is_printing(self):
+        self.printing = True
+
+    # Helper method to disable shrinkage
+    def _disable_shrinkage(self):
+        self.enable = False
+        self.printing = False
+        self._reset_offset_e()
+
+    def _reset_offset_e(self):
+        offset = self.current_offset_e
+        self.current_offset_e = 0.0
+        self.gcode.run_script_from_command(f"SET_GCODE_OFFSET E_ADJUST={offset} MOVE=1")
 
     # Helper method to return the current shrinkage parameters
     def get_status(self, eventtime):
         return {
             "enabled": self.enable,
+            "active": self.allowed,
             "xy_value": self.shrinkage_xy,
             "z_value": self.shrinkage_z,
+            "offset_e": self.current_offset_e,
         }
 
     # Command to set the shrinkage parameters
@@ -100,59 +151,54 @@ class Shrinkage:
 
     def cmd_GET_SHRINKAGE(self, gcmd):
         gcmd.respond_info(
-            "SHRINKAGE XY_VALUE=%.4f Z_VALUE=%.4f ENABLED=%s"
-            % (
-                self.shrinkage_xy,
-                self.shrinkage_z,
-                self.enable,
-            )
+            f"SHRINKAGE XY_VALUE={self.shrinkage_xy:.4f} Z_VALUE={self.shrinkage_z:.4f} ENABLED={self.enable}"
         )
 
     # gcode_move transform position helper
     def get_position(self):
         position = self.next_transform.get_position()
-        self.last_position = position  # save last extrusion for next move
+        if self.enable and self.allowed:
+            position[:2] = [
+                (pos + delta) * self.shrinkage_xy
+                for pos, delta in zip(position[:2], self.deltacenter)
+            ]
+            position[2] *= self.shrinkage_z
+            position[3] = self.base_e + (position[3] - self.base_e) * (
+                self.shrinkage_xy**2 * self.shrinkage_z
+            )
+        else:
+            position[3] -= self.current_offset_e
+
         return position
 
     # gcode_move transform move helper
     def move(self, newpos, speed):
         # Shrinkage is only applied when the printer is printing
-        if self.enable:
-            # Disable the shrinkage when the printer is paused or not homed
-            eventtime = self.reactor.monotonic()
-            if self.allowed and (
-                self.pause_resume.get_status(eventtime)["is_paused"]
-                or self.toolhead.get_status(eventtime)["homed_axes"] != "xyz"
-            ):
-                self.allowed = False
-            if self.allowed:
-                if newpos[:2] != self.last_position[:2]:
-                    newpos[:2] = [
-                        pos / self.shrinkage_xy - delta
-                        for pos, delta in zip(newpos[:2], self.deltacenter)
-                    ]
-                if newpos[2] != self.last_position[2]:
-                    newpos[2] /= self.shrinkage_z
-                v = newpos[3] - self.last_position[3]
-                newpos[3] = self.last_position[3] + v / (
-                    self.shrinkage_xy**2 * self.shrinkage_z
-                )
-        self.last_position = newpos  # save last extrusion for next move
+        # Disable the shrinkage when the printer is paused or not homed
+        self._check_allowed()
+        if self.enable and self.allowed:
+            newpos[:2] = [
+                pos / self.shrinkage_xy - delta
+                for pos, delta in zip(newpos[:2], self.deltacenter)
+            ]
+            newpos[2] /= self.shrinkage_z
+            self.last_e = newpos[3]  # Update last_e before modifying newpos[3]
+            newpos[3] = self.base_e + (self.last_e - self.base_e) / (
+                self.shrinkage_xy**2 * self.shrinkage_z
+            )
+            self.current_offset_e = (
+                newpos[3] - self.last_e
+            )  # Update offset_e based on the change in E
+        else:
+            newpos[3] += self.current_offset_e
 
-        self.next_transform.move(newpos, speed)
+        self.next_transform.move(
+            newpos, speed
+        )  # move to the new position with the next transform
 
     # Helper method to calculate the center of the bed
     def _deltacenter(self):
         self.deltacenter = [c * (1 / self.shrinkage_xy - 1) for c in self.center[:2]]
-
-    # Helper method to allow shrinkage
-    def _allow_shrinkage(self):
-        self.allowed = True
-
-    # Helper method to disable shrinkage
-    def _disable_shrinkage(self):
-        self.enable = False
-        self.allowed = False
 
 
 def load_config(config):

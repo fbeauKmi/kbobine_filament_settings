@@ -70,12 +70,7 @@ class MaxFlow:
 
     def cmd_GET_MAX_FLOW(self, gcmd):
         gcmd.respond_info(
-            "MAX_FLOW VALUE=%.2f REQUEST_FLOW=%.2f ENABLED=%s"
-            % (
-                self.max_flow,
-                self.flow,
-                self.enable,
-            )
+            f"MAX_FLOW VALUE={self.max_flow:.2f} REQUEST_FLOW={self.flow:.2f} ENABLED={self.enable}"
         )
 
     # gcode_move transform position helper
