@@ -669,7 +669,7 @@ class KbobineSettingsHelper:
 
         # Mapping of settings to (command, value_formatter)
         setting_map = {
-            "chamber_temp": ("M141", lambda v, s: f"S={v}"),
+            "chamber_temp": ("M141", lambda v, s: f"S{v}"),
             "speed_factor": ("M220", lambda v, s: f"S{v * 100.0:.3f}"),
             "extrude_factor": ("M221", lambda v, s: f"S{v * 100.0:.3f}"),
             "max_flow": ("SET_MAX_FLOW", lambda v, s: f"VALUE={v}"),
@@ -712,11 +712,11 @@ class KbobineSettingsHelper:
                     and toolhead.get_extruder().get_status(eventtime).get("target", 0)
                     > 0
                 ):
-                    add_action(cmd, "M104", f"S={value}")
+                    add_action(cmd, "M104", f"S{value}")
             elif setting == "bed_temp":
                 heater_bed = self.printer.lookup_object("heater_bed", None)
                 if heater_bed and heater_bed.get_status(eventtime).get("target", 0) > 0:
-                    add_action(cmd, "M140", f"S={value}")
+                    add_action(cmd, "M140", f"S{value}")
 
         for action, values in actions.items():
             script = f"{action} {' '.join(values)}"
