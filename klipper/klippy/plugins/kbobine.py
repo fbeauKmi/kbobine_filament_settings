@@ -937,7 +937,10 @@ class PromptUIHelper:
     def __init__(self, printer):
         self.printer = printer
         self.gcode = printer.lookup_object("gcode")
-        self.gcode.register_command("PROMPT_CLOSE", self.cmd_PROMPT_CLOSE)
+        self.gcode.register_command("PROMPT_CLOSE", self.cmd_PROMPT_CLOSE, desc=self.cmd_PROMPT_CLOSE_help)
+        self.gcode.register_command("PROMPT_SELECT", self.cmd_PROMPT_SELECT, desc=self.cmd_PROMPT_SELECT_help)
+        self.gcode.register_command("PROMPT_QUESTION", self.cmd_PROMPT_QUESTION, desc=self.cmd_PROMPT_QUESTION_help)
+        self.gcode.register_command("PROMPT_MSG", self.cmd_PROMPT_MSG, desc=self.cmd_PROMPT_MSG_help)
 
     def _respond_prompt(self, cmds):
         RESPOND = 'RESPOND TYPE=command MSG="action:prompt_'
@@ -990,9 +993,41 @@ class PromptUIHelper:
         ]
         self._respond_prompt(commands)
 
+    cmd_PROMPT_CLOSE_help = "Close the prompt"
+
     def cmd_PROMPT_CLOSE(self, gcmd):
         """Close the prompt"""
         self._respond_prompt(["end"])
+
+    cmd_PROMPT_SELECT_help = "Handle selection from the prompt"
+
+    def cmd_PROMPT_SELECT(self, gcmd):
+        """Handle selection from the prompt"""
+        message = gcmd.get("MSG", "")
+        options = gcmd.get("OPTIONS", "").split("|")
+        values = gcmd.get("VALUES", "").split("|")
+        key = gcmd.get("KEY", "")
+        action = gcmd.get("ACTION", "")
+        title = gcmd.get("TITLE", "Kbobine")
+        colors = gcmd.get("COLORS", "").split("|") if gcmd.get("COLORS") else None
+        self.select(message, options, values, key, action, title, colors)
+
+    cmd_PROMPT_QUESTION_help = "Handle question response from the prompt"
+
+    def cmd_PROMPT_QUESTION(self, gcmd):
+        """Handle question response from the prompt"""
+        message = gcmd.get("MSG", "")
+        yes_action = gcmd.get("YES_ACTION", "")
+        title = gcmd.get("TITLE", "Kbobine")
+        self.question(message, yes_action, title)
+
+    cmd_PROMPT_MSG_help = "Handle message display from the prompt"
+
+    def cmd_PROMPT_MSG(self, gcmd):
+        """Handle message display from the prompt"""
+        message = gcmd.get("MSG", "")
+        title = gcmd.get("TITLE", "Kbobine")
+        self.msg(message, title)
 
 
 def load_config(config):
