@@ -959,7 +959,7 @@ class PromptUIHelper:
         ]
         # Extend the colors list with "secondary" to ensure each option has a color (fallback if not enough colors specified)
         commands.extend(
-            f'button {opt}|{action} {key}="{val}"|{color}'
+            f'button {opt}|{action} {key}=\\"{val}\\"|{color}'
             for opt, val, color in zip(
                 options, values, colors + ["secondary"] * len(options)
             )
@@ -1004,12 +1004,12 @@ class PromptUIHelper:
     def cmd_PROMPT_SELECT(self, gcmd):
         """Handle selection from the prompt"""
         message = gcmd.get("MSG", "")
-        options = gcmd.get("OPTIONS", "").split("|")
-        values = gcmd.get("VALUES", "").split("|")
+        options = gcmd.get("OPTIONS", "").split(",")
+        values = gcmd.get("VALUES", "").split(",")
         key = gcmd.get("KEY", "")
         action = gcmd.get("ACTION", "")
         title = gcmd.get("TITLE", "Kbobine")
-        colors = gcmd.get("COLORS", "").split("|") if gcmd.get("COLORS") else None
+        colors = gcmd.get("COLORS", "").split(",") if gcmd.get("COLORS") else None
         self.select(message, options, values, key, action, title, colors)
 
     cmd_PROMPT_QUESTION_help = "Handle question response from the prompt"
@@ -1017,7 +1017,7 @@ class PromptUIHelper:
     def cmd_PROMPT_QUESTION(self, gcmd):
         """Handle question response from the prompt"""
         message = gcmd.get("MSG", "")
-        yes_action = gcmd.get("YES_ACTION", "")
+        yes_action = gcmd.get("ACTION", "PROMPT_CLOSE")
         title = gcmd.get("TITLE", "Kbobine")
         self.question(message, yes_action, title)
 
