@@ -10,6 +10,7 @@ import base64
 import json
 import logging
 import zlib
+from asyncio import Lock
 from typing import TYPE_CHECKING, Any
 
 from ..common import RequestType
@@ -41,6 +42,7 @@ class Kbobine:
         # Initialize component variables
         self.sp: SMan | None = None
         self.last_spool_id: int = 0
+        self._get_spool_datas_lock = Lock()
 
         self._error_logged = False
         self.spoolman_datas: dict[
@@ -136,44 +138,45 @@ class Kbobine:
 
     # Get spoolman datas and filter them to keep only relevant parameters for Klipper, then store them in self.kbobine_datas
     async def get_spool_datas(self, eventtime: float) -> bool:
-        if not self.sp.ws_connected:
-            return False
-        if self.last_spool_id == self.sp.spool_id:
-            return True
-        spool_id = self.sp.spool_id
-        self.last_spool_id = spool_id
-        self.spoolman = {}
-        self.kbobine_datas = {
-            "spool_id": 0
-        }  # Initialize with default spool_id 0, which means no active spool.
-        if spool_id is not None:
-            logger.info(f"Requesting spool info for ID: {spool_id}")
-            response = await self.http_client.request(
-                method="GET",
-                url=f"{self.sp.spoolman_url}/v1/spool/{spool_id}",
-            )
-            if response.has_error():
-                if not self._error_logged:
-                    error_msg = self.sp._get_response_error(response)
-                    self._error_logged = True
-                    message = (
-                        f"Failed to get datas for spool id {spool_id}, "
-                        f"received {error_msg}"
-                    )
-                    logger.info(message)
-                self.last_spool_id = 0
+        async with self._get_spool_datas_lock:
+            if not self.sp.ws_connected:
                 return False
-            self._error_logged = False
-            try:
-                self.spoolman_datas = response.json()
-                self.kbobine_datas = self.filter_spoolman_datas(self.spoolman_datas)
-                logger.info(f"Successfully {self.spoolman_datas}")
-            except (ValueError, TypeError) as err:
-                self.last_spool_id = 0
-                logger.info(
-                    f"Error parsing spoolman response for spool id {spool_id}: {err}"
+            if self.last_spool_id == self.sp.spool_id:
+                return True
+            spool_id = self.sp.spool_id
+            self.last_spool_id = spool_id
+            self.spoolman = {}
+            self.kbobine_datas = {
+                "spool_id": 0
+            }
+            if spool_id is not None:
+                logger.info(f"Requesting spool info for ID: {spool_id}")
+                response = await self.http_client.request(
+                    method="GET",
+                    url=f"{self.sp.spoolman_url}/v1/spool/{spool_id}",
                 )
-        return True
+                if response.has_error():
+                    if not self._error_logged:
+                        error_msg = self.sp._get_response_error(response)
+                        self._error_logged = True
+                        message = (
+                            f"Failed to get datas for spool id {spool_id}, "
+                            f"received {error_msg}"
+                        )
+                        logger.info(message)
+                    self.last_spool_id = 0
+                    return False
+                self._error_logged = False
+                try:
+                    self.spoolman_datas = response.json()
+                    self.kbobine_datas = self.filter_spoolman_datas(self.spoolman_datas)
+                    logger.info(f"Successfully {self.spoolman_datas}")
+                except (ValueError, TypeError) as err:
+                    self.last_spool_id = 0
+                    logger.info(
+                        f"Error parsing spoolman response for spool id {spool_id}: {err}"
+                    )
+            return True
 
     # Set kbobine datas in Spoolman extra fields, after filtering and formatting them, only if they have changed compared to current stored datas.
     async def set_datas(self, spoolman_datas: dict[str, Any]) -> None:
