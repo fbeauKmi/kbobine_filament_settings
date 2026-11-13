@@ -101,6 +101,7 @@ class Kbobine:
             "GET_SPOOL": "",
             "GET_LOADED_MATERIAL": "",
             "LOAD_DEFAULT_MATERIAL": "",
+            "LOAD_SPOOL": "",
             "DEL_SPOOL": "",
             "APPLY_SETTINGS": "",
             "SELECT_MATERIAL": "",
@@ -658,7 +659,7 @@ class KbobineSettingsHelper:
         self.gcode.respond_info("\n".join(info))
 
     # Apply settings by sending G-code commands to the printer, if command exists
-    def apply_settings(self, settings: list) -> None:
+    def apply_settings(self, settings: list, gcmd=None) -> None:
         actions = {}
 
         def add_action(function, default_function, value, enable=True) -> None:
@@ -721,7 +722,13 @@ class KbobineSettingsHelper:
         for action, values in actions.items():
             script = f"{action} {' '.join(values)}"
             try:
-                self.gcode.run_script_from_command(script)
+                if hasattr(gcmd, "run_script"):
+                    if gcmd is not None:
+                        gcmd.run_script(script)
+                    else: 
+                        self.gcode.run_script(script)
+                else:
+                   self.gcode.run_script_from_command(script) 
             except Exception as e:
                 logging.error(f"Failed to run gcode script '{script}': {e}")
 
@@ -740,7 +747,7 @@ class KbobineSettingsHelper:
             else:
                 raise gcmd.error("ENABLE parameter must be 0 or 1")
         else:
-            self.apply_settings(list(self.current.keys()))
+            self.apply_settings(list(self.current.keys()), gcmd)
             self.gcode.respond_info("Settings applied")
 
     def cmd_IMPORT_KBOBINE(self, gcmd):
@@ -815,6 +822,13 @@ class KbobineSettingsHelper:
         """Get loaded spool parameters"""
         self.show_settings()
 
+    cmd_LOAD_SPOOL_help = "Load spool parameters from local data"
+
+    def cmd_LOAD_SPOOL(self, gcmd):
+
+        self.current = self.get_settings()
+        self.show_settings()
+
     cmd_GET_LOADED_MATERIAL_help = "Get current material parameters"
 
     def cmd_GET_LOADED_MATERIAL(self, gcmd):
@@ -872,7 +886,7 @@ class KbobineSettingsHelper:
                 "Spoolman is available, use spoolman to select a spool instead of local db"
             )
             return
-            
+
         if gcmd.get("ID", None) is not None:
             self.spool_id = gcmd.get_int("ID", 0)
             if self.spool_id == 0:
@@ -937,18 +951,39 @@ class PromptUIHelper:
     def __init__(self, printer):
         self.printer = printer
         self.gcode = printer.lookup_object("gcode")
-        self.gcode.register_command("PROMPT_CLOSE", self.cmd_PROMPT_CLOSE, desc=self.cmd_PROMPT_CLOSE_help)
-        self.gcode.register_command("PROMPT_SELECT", self.cmd_PROMPT_SELECT, desc=self.cmd_PROMPT_SELECT_help)
-        self.gcode.register_command("PROMPT_QUESTION", self.cmd_PROMPT_QUESTION, desc=self.cmd_PROMPT_QUESTION_help)
-        self.gcode.register_command("PROMPT_MSG", self.cmd_PROMPT_MSG, desc=self.cmd_PROMPT_MSG_help)
+        self.gcode.register_command(
+            "PROMPT_CLOSE", self.cmd_PROMPT_CLOSE, desc=self.cmd_PROMPT_CLOSE_help
+        )
+        self.gcode.register_command(
+            "PROMPT_SELECT", self.cmd_PROMPT_SELECT, desc=self.cmd_PROMPT_SELECT_help
+        )
+        self.gcode.register_command(
+            "PROMPT_QUESTION",
+            self.cmd_PROMPT_QUESTION,
+            desc=self.cmd_PROMPT_QUESTION_help,
+        )
+        self.gcode.register_command(
+            "PROMPT_MSG", self.cmd_PROMPT_MSG, desc=self.cmd_PROMPT_MSG_help
+        )
 
-    def _respond_prompt(self, cmds):
+    def _respond_prompt(self, cmds, gcmd=None):
         RESPOND = 'RESPOND TYPE=command MSG="action:prompt_'
         commands = (f'{RESPOND}{cmd}"' for cmd in cmds)
-        self.gcode.run_script_from_command("\n".join(commands))
+        if hasattr(gcmd, "run_script"):
+            gcmd.run_script("\n".join(commands))
+        else:
+            self.gcode.run_script_from_command("\n".join(commands))
 
     def select(
-        self, message, options, values, key, action, title="Kbobine", colors=None
+        self,
+        message,
+        options,
+        values,
+        key,
+        action,
+        title="Kbobine",
+        colors=None,
+        gcmd=None,
     ) -> None:
         """Send a prompt to the UI with options to select from"""
         if colors is None:
@@ -970,9 +1005,9 @@ class PromptUIHelper:
                 "show",
             ]
         )
-        self._respond_prompt(commands)
+        self._respond_prompt(commands, gcmd)
 
-    def question(self, message, yes_action, title="Kbobine") -> None:
+    def question(self, message, yes_action, title="Kbobine", gcmd=None) -> None:
         """Send a yes/no question prompt to the UI"""
         commands = [
             f"begin {title}",
@@ -981,9 +1016,9 @@ class PromptUIHelper:
             "footer_button No|PROMPT_CLOSE|error",
             "show",
         ]
-        self._respond_prompt(commands)
+        self._respond_prompt(commands, gcmd)
 
-    def msg(self, message, title="Kbobine") -> None:
+    def msg(self, message, title="Kbobine", gcmd=None) -> None:
         """Show a message prompt in the UI"""
         commands = [
             f"begin {title}",
@@ -991,13 +1026,13 @@ class PromptUIHelper:
             "footer_button OK|PROMPT_CLOSE",
             "show",
         ]
-        self._respond_prompt(commands)
+        self._respond_prompt(commands, gcmd)
 
     cmd_PROMPT_CLOSE_help = "Close the prompt"
 
     def cmd_PROMPT_CLOSE(self, gcmd):
         """Close the prompt"""
-        self._respond_prompt(["end"])
+        self._respond_prompt(["end"], gcmd)
 
     cmd_PROMPT_SELECT_help = "Handle selection from the prompt"
 
@@ -1010,7 +1045,7 @@ class PromptUIHelper:
         action = gcmd.get("ACTION", "")
         title = gcmd.get("TITLE", "Kbobine")
         colors = gcmd.get("COLORS", "").split(",") if gcmd.get("COLORS") else None
-        self.select(message, options, values, key, action, title, colors)
+        self.select(message, options, values, key, action, title, colors, gcmd)
 
     cmd_PROMPT_QUESTION_help = "Handle question response from the prompt"
 
@@ -1019,7 +1054,7 @@ class PromptUIHelper:
         message = gcmd.get("MSG", "")
         yes_action = gcmd.get("ACTION", "PROMPT_CLOSE")
         title = gcmd.get("TITLE", "Kbobine")
-        self.question(message, yes_action, title)
+        self.question(message, yes_action, title, gcmd)
 
     cmd_PROMPT_MSG_help = "Handle message display from the prompt"
 
@@ -1027,7 +1062,7 @@ class PromptUIHelper:
         """Handle message display from the prompt"""
         message = gcmd.get("MSG", "")
         title = gcmd.get("TITLE", "Kbobine")
-        self.msg(message, title)
+        self.msg(message, title, gcmd)
 
 
 def load_config(config):

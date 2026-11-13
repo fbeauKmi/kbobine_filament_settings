@@ -5,6 +5,7 @@
 # Changes:
 # - 2025-06-15: Initial version
 # - 2026-07-28: Fixed bug with E offset calculation and added support for pause/resume events
+# - 2026-11-09: fixes to support new motion queue and mutex in run_script_from_command
 #
 # This file may be distributed under the terms of the GNU GPLv3 license.
 
@@ -88,7 +89,7 @@ class Shrinkage:
         if 2 in homing_state.get_axes():
             self.th_homed = True
 
-    def motor_off(self, print_time):
+    def motor_off(self):
         self.th_homed = False
         self._disable_shrinkage()
 
@@ -120,8 +121,11 @@ class Shrinkage:
     def _reset_offset_e(self):
         offset = self.current_offset_e
         self.current_offset_e = 0.0
-        self.gcode.run_script_from_command(f"SET_GCODE_OFFSET E_ADJUST={offset} MOVE=1")
-
+        script = f"SET_GCODE_OFFSET E_ADJUST={offset} MOVE=1"
+        if hasattr(self.gcode, "get_mutex") and not self.gcode.get_mutex().test():
+            self.gcode.run_script(script) 
+        else:   
+            self.gcode.run_script_from_command(script)
     # Helper method to return the current shrinkage parameters
     def get_status(self, eventtime):
         return {
